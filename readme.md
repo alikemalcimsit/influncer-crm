@@ -299,7 +299,7 @@ MIT
 
 ## 👨‍💻 Geliştirici
 
-Ali Kemal
+Ali Kemal / Ertuğrul Araç
 
 ---
 
