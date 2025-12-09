@@ -17,6 +17,18 @@ import analyticsRoutes from './routes/analytics.routes.js';
 import trendRoutes from './routes/trend.routes.js';
 import emailRoutes from './routes/email.routes.js';
 import revenueRoutes from './routes/revenue.routes.js';
+import brandMatchRoutes from './routes/brandMatch.routes.js';
+import competitorRoutes from './routes/competitor.routes.js';
+import calendarRoutes from './routes/calendar.routes.js';
+import collaborationRoutes from './routes/collaboration.routes.js';
+import aiRoutes from './routes/ai.routes.js';
+import schedulingRoutes from './routes/scheduling.routes.js';
+import mediaRoutes from './routes/media.routes.js';
+import platformRoutes from './routes/platforms.routes.js';
+import oauthRoutes from './routes/oauth.routes.js';
+import aiContentRoutes from './routes/aiContent.routes.js';
+import campaignRoutes from './routes/campaign.routes.js';
+import schedulingService from './services/scheduling.service.js';
 
 const app = express();
 
@@ -82,6 +94,17 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/trends', trendRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/revenue', revenueRoutes);
+app.use('/api/brand-matches', brandMatchRoutes);
+app.use('/api/competitors', competitorRoutes);
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/collaborations', collaborationRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/scheduling', schedulingRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/platforms', platformRoutes);
+app.use('/api/oauth', oauthRoutes);
+app.use('/api/ai-content', aiContentRoutes);
+app.use('/api/campaigns', campaignRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -124,6 +147,10 @@ connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📝 Environment: ${process.env.NODE_ENV}`);
+    
+    // Start scheduler
+    schedulingService.start();
+    console.log('⏰ Content scheduler started');
   });
 });
 
