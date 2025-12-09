@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/Layout/DashboardLayout';
 import { contentService } from '@/services/content.service';
-import { FiPlus, FiCalendar, FiUser, FiThumbsUp, FiMessageCircle, FiEye } from 'react-icons/fi';
+import { aiService } from '@/services/ai.service';
+import { FiPlus, FiCalendar, FiThumbsUp, FiMessageCircle, FiEye, FiHash } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 
 interface Content {
@@ -19,6 +20,9 @@ export default function Content() {
   const [contents, setContents] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showHashtagModal, setShowHashtagModal] = useState(false);
+  const [recommendedHashtags, setRecommendedHashtags] = useState<any>(null);
+  const [loadingHashtags, setLoadingHashtags] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     platform: 'instagram',
@@ -57,6 +61,28 @@ export default function Content() {
       });
     } catch (error) {
       toast.error('Failed to create content');
+    }
+  };
+
+  const handleGetHashtagRecommendations = async () => {
+    if (!formData.title && !formData.description) {
+      toast.error('Please enter a title or description first');
+      return;
+    }
+
+    try {
+      setLoadingHashtags(true);
+      const response = await aiService.getHashtagRecommendations({
+        title: formData.title,
+        description: formData.description,
+        platform: formData.platform
+      });
+      setRecommendedHashtags(response.data?.recommendations);
+      setShowHashtagModal(true);
+    } catch (error) {
+      toast.error('Failed to get hashtag recommendations');
+    } finally {
+      setLoadingHashtags(false);
     }
   };
 
@@ -224,6 +250,20 @@ export default function Content() {
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
                 />
               </div>
+              
+              {/* Hashtag Recommendations Button */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleGetHashtagRecommendations}
+                  disabled={loadingHashtags}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-purple-300 rounded-md text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50"
+                >
+                  <FiHash className="mr-2" />
+                  {loadingHashtags ? 'Getting Recommendations...' : 'Get AI Hashtag Recommendations'}
+                </button>
+              </div>
+
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
@@ -240,6 +280,137 @@ export default function Content() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Hashtag Recommendations Modal */}
+      {showHashtagModal && recommendedHashtags && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">AI Hashtag Recommendations</h3>
+              <button
+                onClick={() => setShowHashtagModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="px-6 py-4">
+              {/* Strategy */}
+              {recommendedHashtags.strategy && (
+                <div className="mb-6 p-4 bg-purple-50 rounded-lg">
+                  <h4 className="font-semibold text-purple-900 mb-2">Hashtag Strategy</h4>
+                  <ul className="space-y-1 text-sm text-purple-800">
+                    {recommendedHashtags.strategy.recommended?.map((tip: string, idx: number) => (
+                      <li key={idx}>• {tip}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Categories */}
+              <div className="space-y-4">
+                {recommendedHashtags.categories?.trending && recommendedHashtags.categories.trending.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                      Trending Hashtags
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {recommendedHashtags.categories.trending.map((tag: any, idx: number) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm cursor-pointer hover:bg-orange-200"
+                          onClick={() => {
+                            navigator.clipboard.writeText(tag.tag);
+                            toast.success('Copied to clipboard!');
+                          }}
+                        >
+                          {tag.tag} ({Math.round(tag.score)})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {recommendedHashtags.categories?.niche && recommendedHashtags.categories.niche.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                      Niche-Specific Hashtags
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {recommendedHashtags.categories.niche.map((tag: any, idx: number) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm cursor-pointer hover:bg-blue-200"
+                          onClick={() => {
+                            navigator.clipboard.writeText(tag.tag);
+                            toast.success('Copied to clipboard!');
+                          }}
+                        >
+                          {tag.tag} ({Math.round(tag.score)})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {recommendedHashtags.categories?.engagement && recommendedHashtags.categories.engagement.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      High Engagement Hashtags
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {recommendedHashtags.categories.engagement.map((tag: any, idx: number) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm cursor-pointer hover:bg-green-200"
+                          onClick={() => {
+                            navigator.clipboard.writeText(tag.tag);
+                            toast.success('Copied to clipboard!');
+                          }}
+                        >
+                          {tag.tag} ({Math.round(tag.score)})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* All Recommended */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-3">All Recommended (Top 30)</h4>
+                <div className="flex flex-wrap gap-2">
+                  {recommendedHashtags.recommended?.slice(0, 30).map((tag: any, idx: number) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm cursor-pointer hover:bg-gray-200"
+                      onClick={() => {
+                        navigator.clipboard.writeText(tag.tag);
+                        toast.success('Copied to clipboard!');
+                      }}
+                    >
+                      {tag.tag} ({Math.round(tag.score)})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setShowHashtagModal(false)}
+                className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
